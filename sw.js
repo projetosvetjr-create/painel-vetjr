@@ -1,6 +1,6 @@
 // Service worker do painel VetJr: guarda a "casca" do app pra abrir rápido e instalar.
 // Os dados NUNCA ficam no cache — sempre vêm do servidor (Google Sheets).
-var VERSAO = 'vetjr-v1';
+var VERSAO = 'vetjr-v2';
 var CASCA = ['./', './index.html', './config.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {

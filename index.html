@@ -2,6 +2,21 @@
 <title>Painel VetJr</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#05151f">
+<meta name="description" content="Painel de projetos, clientes, eventos e finanças da VetJr.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VetJr">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Painel VetJr">
+<meta property="og:description" content="Projetos, clientes, eventos e finanças da VetJr.">
+<meta property="og:url" content="https://projetosvetjr-create.github.io/painel-vetjr/">
+<meta property="og:image" content="https://projetosvetjr-create.github.io/painel-vetjr/preview.png">
+<meta property="og:image:secure_url" content="https://projetosvetjr-create.github.io/painel-vetjr/preview.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Painel VetJr">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://projetosvetjr-create.github.io/painel-vetjr/preview.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -744,6 +759,18 @@ if (!(window.google && google.script && google.script.run)) {
   if (!inGas() && !apiUrl()) apiInput.style.display = 'block';   // primeira vez no app instalado: pede o link uma vez só
 
   var busy = false;
+  // diz o motivo real quando o login falha por outra coisa que não o código (pra saber onde está o problema)
+  function motivoFalhaLogin_(msg){
+    try{ console.error('login falhou:', msg); }catch(e){}
+    var m = String(msg||'');
+    var base;
+    if (/failed to fetch|networkerror|load failed|network request failed|typeerror/i.test(m)) base = 'Sem conexão com o servidor do painel (rede ou bloqueio do navegador/aparelho).';
+    else if (/resposta inesperada/i.test(m)) base = 'O servidor respondeu algo inesperado: confira se a implantação está como "Qualquer pessoa" e publicada na versão mais nova.';
+    else if (/SEM_SERVIDOR/.test(m)) base = 'O app não tem o link do servidor configurado.';
+    else if (/NAO_AUTORIZADO/.test(m)) base = 'Sessão não autorizada, tente de novo.';
+    else base = 'Erro do servidor.';
+    return base + ' [' + m.replace(/^Error:\s*/,'').slice(0,90) + ']';
+  }
   function tryPassword(){
     if (busy || !input.value) return;
     if (!inGas() && !apiUrl()){
@@ -772,7 +799,7 @@ if (!(window.google && google.script && google.script.run)) {
         var msg = String((err && err.message) || err || '');
         errEl.textContent = msg.indexOf('MUITAS_TENTATIVAS')!==-1
           ? 'Muitas tentativas erradas. Aguarde alguns minutos.'
-          : (msg.indexOf('CODIGO_INCORRETO')!==-1 ? 'Código incorreto.' : 'Não foi possível conferir o código. Tente de novo.');
+          : (msg.indexOf('CODIGO_INCORRETO')!==-1 ? 'Código incorreto.' : motivoFalhaLogin_(msg));
         input.value = ''; input.focus();
         busy = false; btn.style.opacity = '';
       });
