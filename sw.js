@@ -1,6 +1,6 @@
 // Service worker do painel VetJr: guarda a "casca" do app pra abrir rápido e instalar.
 // Os dados NUNCA ficam no cache — sempre vêm do servidor (Google Sheets).
-var VERSAO = 'vetjr-v2';
+var VERSAO = 'vetjr-v4';
 var CASCA = ['./', './index.html', './config.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
@@ -18,7 +18,7 @@ self.addEventListener('fetch', function (e) {
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;   // servidor do Google, fontes e bibliotecas: o navegador cuida
   e.respondWith(
-    fetch(req).then(function (res) {
+    fetch(req, { cache: 'no-cache' }).then(function (res) {
       if (res && res.ok) { var cp = res.clone(); caches.open(VERSAO).then(function (c) { c.put(req, cp); }); }
       return res;
     }).catch(function () { return caches.match(req).then(function (r) { return r || caches.match('./index.html'); }); })
