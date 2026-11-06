@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VetJr Painel</title>
+<meta name="theme-color" content="#05151f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  html,body{ margin:0; height:100%; background:#05151f; color:#eaf2ec; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  .box{ min-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; text-align:center; }
+  .box img{ width:84px; height:84px; border-radius:50%; }
+  .msg{ font-size:14px; opacity:.85; max-width:34ch; line-height:1.5; }
+  button{ font:inherit; font-weight:700; padding:10px 18px; border-radius:10px; border:0; background:#3fb87c; color:#05151f; cursor:pointer; }
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="box" id="box">
+  <img src="icon-192.png" alt="VetJr">
+  <div class="msg" id="msg">Abrindo o painel…</div>
+  <button id="retry" style="display:none;">Tentar de novo</button>
+</div>
+<script>
+/* Casca do app instalado (GitHub Pages).
+   Ela NÃO tem o painel: a cada abertura busca a versão mais nova direto do Apps Script (a mesma que vale pro link /exec).
+   Assim, atualizar o painel = colar no Apps Script e criar nova versão; o GitHub não precisa mais de arquivo novo.
+   Sem internet, abre a última cópia que ficou guardada no aparelho. */
+(function(){
+  var KEY = 'vetjr_shell_html', KEYV = 'vetjr_shell_em';
+  var msg = document.getElementById('msg'), retry = document.getElementById('retry');
+  function api(){
+    var u = '';
+    try{ u = String(window.VETJR_API || ''); }catch(e){}
+    if (!/^https:\/\/script\.google\.com\//.test(u)){ u = ''; try{ u = localStorage.getItem('vetjr_api') || ''; }catch(e){} }
+    return /^https:\/\/script\.google\.com\//.test(u) ? u : '';
+  }
+  function abrir(html){
+    try{ document.open(); document.write(html); document.close(); }
+    catch(e){ msg.textContent = 'Não consegui abrir o painel. Atualize a página.'; retry.style.display = ''; }
+  }
+  function guardado(){ try{ return localStorage.getItem(KEY) || ''; }catch(e){ return ''; } }
+  function carregar(){
+    retry.style.display = 'none'; msg.textContent = 'Abrindo o painel…';
+    var url = api();
+    if (!url){
+      var u = '';
+      try{ u = (prompt('Cole o link do painel (começa com https://script.google.com e termina em /exec):') || '').trim(); }catch(e){}
+      if (/^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[^/]+\/exec$/.test(u)){ try{ localStorage.setItem('vetjr_api', u); }catch(e){} url = u; }
+      else { msg.textContent = 'Preciso do link do painel para abrir.'; retry.style.display = ''; return; }
+    }
+    window.VETJR_API = url; window.VETJR_PWA = true;
+    var ctl = new AbortController(), t = setTimeout(function(){ ctl.abort(); }, 20000);
+    fetch(url, { method:'POST', redirect:'follow', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ fn:'gas_shell', args:[] }), signal: ctl.signal })
+      .then(function(r){ return r.text(); })
+      .then(function(txt){
+        clearTimeout(t);
+        var j; try{ j = JSON.parse(txt); }catch(e){ throw new Error('resposta'); }
+        if (!j || !j.ok || typeof j.result !== 'string' || j.result.length < 1000) throw new Error('shell');
+        try{ localStorage.setItem(KEY, j.result); localStorage.setItem(KEYV, String(Date.now())); }catch(e){}
+        abrir(j.result);
+      })
+      .catch(function(err){
+        clearTimeout(t);
+        var c = guardado();
+        if (c){ abrir(c); return; }          // sem internet / servidor fora: usa a última cópia guardada
+        msg.textContent = (String(err && err.message) === 'shell')
+          ? 'O servidor ainda não está com a atualização do painel (falta colar o Code.gs novo no Apps Script e criar a nova versão).'
+          : 'Sem conexão com o servidor. Confira a internet e tente de novo.';
+        retry.style.display = '';
+      });
+  }
+  retry.addEventListener('click', carregar);
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function(){});
+  carregar();
+})();
+</script>
+</body>
+</html>
